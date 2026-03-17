@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Student {
+  id            String       @id @default(cuid())
+  ghlContactId  String?      @unique
+  firstName     String
+  lastName      String
+  phone         String?
+  email         String?
+  beltRank      String?
+  status        String       @default("active")
+  attendance    Attendance[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Class {
+  id             String       @id @default(cuid())
+  className      String
+  program        String?
+  ageGroup       String?
+  instructorName String?
+  dayOfWeek      String?
+  startTime      String?
+  endTime        String?
+  isActive       Boolean      @default(true)
+  attendance     Attendance[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Attendance {
+  id               String    @id @default(cuid())
+  studentId        String
+  classId          String
+  checkInTime      DateTime  @default(now())
+  attendanceStatus String    @default("present")
+  notes            String?
+  syncedToGhl      Boolean   @default(false)
+  ghlSyncTime      DateTime?
+  createdByStaffId String?
+  createdAt        DateTime  @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+}
+
+model Staff {
+  id         String       @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String?      @unique
+  role       String?
+  pinCode    String?
+  isActive   Boolean      @default(true)
+  shifts     StaffShift[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model StaffShift {
+  id           String    @id @default(cuid())
+  staffId      String
+  clockInTime  DateTime  @default(now())
+  clockOutTime DateTime?
+  status       String    @default("clocked_in")
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  title       String
+  category    String?
+  url         String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
