@@ -12,9 +12,14 @@ export async function GET() {
     });
 
     return NextResponse.json(staff);
-  } catch {
+  } catch (error) {
+    console.error("GET /api/staff failed:", error);
+
     return NextResponse.json(
-      { error: "Failed to fetch staff" },
+      {
+        error: "Failed to fetch staff",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -43,9 +48,14 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(newStaff, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("POST /api/staff failed:", error);
+
     return NextResponse.json(
-      { error: "Failed to create staff member" },
+      {
+        error: "Failed to create staff member",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
