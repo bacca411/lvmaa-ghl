@@ -39,6 +39,15 @@ export default function HomePage() {
               See today’s attendance and who is on shift.
             </p>
           </Link>
+          <Link
+          href="/staff"
+          className="rounded-2xl border p-6 shadow-sm hover:shadow"
+          >
+          <h2 className="text-xl font-semibold">Staff</h2>
+  <        p className="mt-2 text-sm text-gray-600">
+           Add and manage employees.
+  </p>
+</Link>
         </div>
       </div>
     </main>
