@@ -36,15 +36,35 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function loadStaff() {
     setLoading(true);
+    setErrorMessage("");
+
     try {
       const response = await fetch("/api/staff", {
         cache: "no-store",
       });
+
       const data = await response.json();
+
+      if (!response.ok) {
+        setStaff([]);
+        setErrorMessage(data.error || "Failed to load staff.");
+        return;
+      }
+
+      if (!Array.isArray(data)) {
+        setStaff([]);
+        setErrorMessage("Staff response was not in the expected format.");
+        return;
+      }
+
       setStaff(data);
+    } catch {
+      setStaff([]);
+      setErrorMessage("Failed to load staff.");
     } finally {
       setLoading(false);
     }
@@ -83,6 +103,7 @@ export default function StaffPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
+    setErrorMessage("");
 
     try {
       const url = editingId ? `/api/staff/${editingId}` : "/api/staff";
@@ -98,41 +119,52 @@ export default function StaffPage() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        alert(errorData.error || "Failed to save staff member.");
+        setErrorMessage(data.error || "Failed to save staff member.");
         return;
       }
 
       resetForm();
       await loadStaff();
+    } catch {
+      setErrorMessage("Failed to save staff member.");
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleActive(staffMember: StaffMember) {
-    const response = await fetch(`/api/staff/${staffMember.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        firstName: staffMember.firstName,
-        lastName: staffMember.lastName,
-        email: staffMember.email ?? "",
-        role: staffMember.role ?? "",
-        pinCode: staffMember.pinCode ?? "",
-        isActive: !staffMember.isActive,
-      }),
-    });
+    setErrorMessage("");
 
-    if (!response.ok) {
-      alert("Failed to update staff status.");
-      return;
+    try {
+      const response = await fetch(`/api/staff/${staffMember.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName: staffMember.firstName,
+          lastName: staffMember.lastName,
+          email: staffMember.email ?? "",
+          role: staffMember.role ?? "",
+          pinCode: staffMember.pinCode ?? "",
+          isActive: !staffMember.isActive,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.error || "Failed to update staff status.");
+        return;
+      }
+
+      await loadStaff();
+    } catch {
+      setErrorMessage("Failed to update staff status.");
     }
-
-    await loadStaff();
   }
 
   return (
@@ -144,6 +176,12 @@ export default function StaffPage() {
             Add and manage employees for clock-in and operations.
           </p>
         </div>
+
+        {errorMessage ? (
+          <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <div className="rounded-2xl border p-6 shadow-sm">
           <h2 className="text-xl font-semibold">
@@ -215,8 +253,8 @@ export default function StaffPage() {
                 {saving
                   ? "Saving..."
                   : editingId
-                  ? "Update Staff Member"
-                  : "Add Staff Member"}
+                    ? "Update Staff Member"
+                    : "Add Staff Member"}
               </button>
 
               {editingId ? (
@@ -258,15 +296,9 @@ export default function StaffPage() {
                       <td className="py-3 pr-4 font-medium">
                         {staffMember.firstName} {staffMember.lastName}
                       </td>
-                      <td className="py-3 pr-4">
-                        {staffMember.email || "-"}
-                      </td>
-                      <td className="py-3 pr-4">
-                        {staffMember.role || "-"}
-                      </td>
-                      <td className="py-3 pr-4">
-                        {staffMember.pinCode || "-"}
-                      </td>
+                      <td className="py-3 pr-4">{staffMember.email || "-"}</td>
+                      <td className="py-3 pr-4">{staffMember.role || "-"}</td>
+                      <td className="py-3 pr-4">{staffMember.pinCode || "-"}</td>
                       <td className="py-3 pr-4">
                         {staffMember.isActive ? "Active" : "Inactive"}
                       </td>
