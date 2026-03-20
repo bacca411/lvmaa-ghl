@@ -82,6 +82,7 @@ export async function POST(request: Request) {
       where: { id: studentId },
       data: {
         lastAttended: attendance.checkInTime,
+        lastAttendedClassName: attendance.class.className
       },
     });
 
