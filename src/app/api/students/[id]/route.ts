@@ -11,17 +11,19 @@ export async function PUT(
     const { id } = await context.params;
     const body = await request.json();
 
+    const data: any = {};
+
+    if (body.firstName !== undefined) data.firstName = body.firstName;
+    if (body.lastName !== undefined) data.lastName = body.lastName;
+    if (body.phone !== undefined) data.phone = body.phone || null;
+    if (body.email !== undefined) data.email = body.email || null;
+    if (body.beltRank !== undefined) data.beltRank = body.beltRank || null;
+    if (body.program !== undefined) data.program = body.program || null;
+    if (body.status !== undefined) data.status = body.status;
+
     const student = await prisma.student.update({
       where: { id },
-      data: {
-        firstName: body.firstName,
-        lastName: body.lastName,
-        phone: body.phone || null,
-        email: body.email || null,
-        beltRank: body.beltRank || null,
-        program: body.program || null,
-        status: body.status || "active",
-      },
+      data,
     });
 
     return NextResponse.json(student);
