@@ -78,6 +78,13 @@ export async function POST(request: Request) {
       },
     });
 
+    await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        lastAttended: attendance.checkInTime,
+      },
+    });
+
     return NextResponse.json(attendance, { status: 201 });
   } catch (error) {
     console.error("ATTENDANCE POST ERROR:", error);
