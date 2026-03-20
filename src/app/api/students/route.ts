@@ -30,20 +30,26 @@ async function getNextStudentNumber() {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
+  const includeArchived = searchParams.get("includeArchived") === "true";
 
   const students = await prisma.student.findMany({
-    where: q
-      ? {
-          OR: [
-            { firstName: { contains: q, mode: "insensitive" } },
-            { lastName: { contains: q, mode: "insensitive" } },
-            { phone: { contains: q } },
-            { email: { contains: q, mode: "insensitive" } },
-            { studentNumber: { contains: q, mode: "insensitive" } },
-            { program: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : {},
+    where: {
+      AND: [
+        includeArchived ? {} : { status: { not: "archived" } },
+        q
+          ? {
+              OR: [
+                { firstName: { contains: q, mode: "insensitive" } },
+                { lastName: { contains: q, mode: "insensitive" } },
+                { phone: { contains: q } },
+                { email: { contains: q, mode: "insensitive" } },
+                { studentNumber: { contains: q, mode: "insensitive" } },
+                { program: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {},
+      ],
+    },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
 

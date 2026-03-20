@@ -36,7 +36,14 @@ const programOptions = [
   "Judo",
 ];
 
-const statusOptions = ["active", "inactive", "trial", "hold", "cancelled"];
+const statusOptions = [
+  "active",
+  "inactive",
+  "trial",
+  "hold",
+  "cancelled",
+  "archived",
+];
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -108,6 +115,37 @@ export default function StudentsPage() {
 
     setMessage(editingId ? "Student updated." : "Student created.");
     resetForm();
+    void loadStudents(query);
+  }
+
+  async function archiveStudent(id: string) {
+    const confirmed = window.confirm(
+      "Archive this student? They will be removed from the normal student list."
+    );
+
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+
+    const res = await fetch(`/api/students/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: "archived",
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Failed to archive student.");
+      return;
+    }
+
+    setMessage("Student archived.");
     void loadStudents(query);
   }
 
@@ -248,12 +286,21 @@ export default function StudentsPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => startEdit(student)}
-                className="rounded-lg border px-4 py-2"
-              >
-                Edit
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => startEdit(student)}
+                  className="rounded-lg border px-4 py-2"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => archiveStudent(student.id)}
+                  className="rounded-lg border px-4 py-2 text-red-600"
+                >
+                  Archive
+                </button>
+              </div>
             </div>
           ))}
 
