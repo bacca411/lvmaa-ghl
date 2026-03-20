@@ -1,6 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+async function getNextStudentNumber() {
+  const students = await prisma.student.findMany({
+    where: {
+      studentNumber: {
+        not: null,
+      },
+    },
+    select: {
+      studentNumber: true,
+    },
+  });
+
+  let maxNumber = 1000;
+
+  for (const student of students) {
+    const rawValue = student.studentNumber?.replace("LV-", "") ?? "";
+    const parsedValue = Number(rawValue);
+
+    if (!Number.isNaN(parsedValue) && parsedValue > maxNumber) {
+      maxNumber = parsedValue;
+    }
+  }
+
+  return `LV-${maxNumber + 1}`;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
@@ -13,6 +39,8 @@ export async function GET(request: Request) {
             { lastName: { contains: q, mode: "insensitive" } },
             { phone: { contains: q } },
             { email: { contains: q, mode: "insensitive" } },
+            { studentNumber: { contains: q, mode: "insensitive" } },
+            { program: { contains: q, mode: "insensitive" } },
           ],
         }
       : {},
@@ -31,6 +59,7 @@ export async function POST(request: Request) {
       phone,
       email,
       beltRank,
+      program,
       status,
       ghlContactId,
     } = body;
@@ -42,13 +71,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const studentNumber = await getNextStudentNumber();
+
     const student = await prisma.student.create({
       data: {
+        studentNumber,
         firstName,
         lastName,
         phone: phone || null,
         email: email || null,
         beltRank: beltRank || null,
+        program: program || null,
         status: status || "active",
         ghlContactId: ghlContactId || null,
       },

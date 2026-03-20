@@ -19,6 +19,7 @@ export async function PUT(
         phone: body.phone || null,
         email: body.email || null,
         beltRank: body.beltRank || null,
+        program: body.program || null,
         status: body.status || "active",
       },
     });

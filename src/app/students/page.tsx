@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 
 type Student = {
   id: string;
+  studentNumber?: string | null;
   firstName: string;
   lastName: string;
   phone?: string | null;
   email?: string | null;
   beltRank?: string | null;
+  program?: string | null;
   status?: string | null;
+  lastAttended?: string | null;
 };
 
 const emptyForm = {
@@ -18,8 +21,22 @@ const emptyForm = {
   phone: "",
   email: "",
   beltRank: "",
+  program: "",
   status: "active",
 };
+
+const programOptions = [
+  "Tiny Tigers",
+  "Kids Taekwondo",
+  "Teens Taekwondo",
+  "Adult Taekwondo",
+  "Leadership",
+  "Demo Team",
+  "Cardio Kickboxing",
+  "Judo",
+];
+
+const statusOptions = ["active", "inactive", "trial", "hold", "cancelled"];
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -36,12 +53,12 @@ export default function StudentsPage() {
   }
 
   useEffect(() => {
-    loadStudents();
+    void loadStudents();
   }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadStudents(query);
+      void loadStudents(query);
     }, 250);
 
     return () => clearTimeout(timer);
@@ -55,6 +72,7 @@ export default function StudentsPage() {
       phone: student.phone || "",
       email: student.email || "",
       beltRank: student.beltRank || "",
+      program: student.program || "",
       status: student.status || "active",
     });
     setMessage("");
@@ -90,7 +108,7 @@ export default function StudentsPage() {
 
     setMessage(editingId ? "Student updated." : "Student created.");
     resetForm();
-    loadStudents(query);
+    void loadStudents(query);
   }
 
   return (
@@ -135,12 +153,26 @@ export default function StudentsPage() {
           />
           <select
             className="rounded-xl border p-3"
+            value={form.program}
+            onChange={(e) => setForm({ ...form, program: e.target.value })}
+          >
+            <option value="">Select program</option>
+            {programOptions.map((program) => (
+              <option key={program} value={program}>
+                {program}
+              </option>
+            ))}
+          </select>
+          <select
+            className="rounded-xl border p-3"
             value={form.status}
             onChange={(e) => setForm({ ...form, status: e.target.value })}
           >
-            <option value="active">active</option>
-            <option value="inactive">inactive</option>
-            <option value="trial">trial</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -197,10 +229,22 @@ export default function StudentsPage() {
                   {student.firstName} {student.lastName}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {student.beltRank || "No belt rank"} · {student.status || "active"}
+                  {student.studentNumber || "No student ID"} ·{" "}
+                  {student.program || "No program"}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {student.beltRank || "No belt rank"} ·{" "}
+                  {student.status || "active"}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {student.phone || "No phone"} {student.email ? `· ${student.email}` : ""}
+                  {student.phone || "No phone"}
+                  {student.email ? ` · ${student.email}` : ""}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Last attended:{" "}
+                  {student.lastAttended
+                    ? new Date(student.lastAttended).toLocaleDateString()
+                    : "Never"}
                 </p>
               </div>
 
