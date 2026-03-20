@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { syncStudentToGhl } from "@/lib/ghl";
 import { NextResponse } from "next/server";
 
 async function getNextStudentNumber() {
@@ -93,7 +94,32 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(student, { status: 201 });
+    try {
+      const ghlContact = await syncStudentToGhl({
+        ghlContactId: student.ghlContactId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        phone: student.phone,
+        email: student.email,
+        studentNumber: student.studentNumber,
+        program: student.program,
+        status: student.status,
+        beltRank: student.beltRank,
+        lastAttended: student.lastAttended,
+      });
+
+      const updatedStudent = await prisma.student.update({
+        where: { id: student.id },
+        data: {
+          ghlContactId: ghlContact.id,
+        },
+      });
+
+      return NextResponse.json(updatedStudent, { status: 201 });
+    } catch (ghlError) {
+      console.error("GHL CREATE/UPDATE ERROR:", ghlError);
+      return NextResponse.json(student, { status: 201 });
+    }
   } catch (error) {
     console.error("CREATE STUDENT ERROR:", error);
     return NextResponse.json(

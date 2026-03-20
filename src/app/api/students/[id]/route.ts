@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { syncStudentToGhl } from "@/lib/ghl";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ id: string }>;
@@ -25,6 +26,23 @@ export async function PUT(
       where: { id },
       data,
     });
+
+    try {
+      await syncStudentToGhl({
+        ghlContactId: student.ghlContactId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        phone: student.phone,
+        email: student.email,
+        studentNumber: student.studentNumber,
+        program: student.program,
+        status: student.status,
+        beltRank: student.beltRank,
+        lastAttended: student.lastAttended,
+      });
+    } catch (ghlError) {
+      console.error("GHL UPDATE ERROR:", ghlError);
+    }
 
     return NextResponse.json(student);
   } catch (error) {
