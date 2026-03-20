@@ -13,13 +13,16 @@ datasource db {
 
 model Student {
   id            String       @id @default(cuid())
+  studentNumber String?      @unique
   ghlContactId  String?      @unique
   firstName     String
   lastName      String
   phone         String?
   email         String?
   beltRank      String?
+  program       String?
   status        String       @default("active")
+  lastAttended  DateTime?
   attendance    Attendance[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
