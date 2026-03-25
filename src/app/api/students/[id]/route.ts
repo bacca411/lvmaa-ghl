@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { syncStudentToGhl } from "@/lib/ghl";
+// CHANGED: removed old direct GHL import
+// import { syncStudentToGhl } from "@/lib/ghl";
+
 import { NextResponse } from "next/server";
+import { syncStudentById } from "@/lib/student-sync"; // CHANGED: use centralized sync helper
 
 type Params = Promise<{ id: string }>;
 
@@ -28,23 +31,20 @@ export async function PUT(
     });
 
     try {
-      await syncStudentToGhl({
-        ghlContactId: student.ghlContactId,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        phone: student.phone,
-        email: student.email,
-        studentNumber: student.studentNumber,
-        program: student.program,
-        status: student.status,
-        beltRank: student.beltRank,
-        lastAttended: student.lastAttended,
-      });
+      // CHANGED: use centralized sync helper instead of calling GHL directly
+      const syncedStudent = await syncStudentById(student.id);
+
+      return NextResponse.json(syncedStudent);
     } catch (ghlError) {
       console.error("GHL UPDATE ERROR:", ghlError);
-    }
 
-    return NextResponse.json(student);
+      // CHANGED: re-fetch latest DB state in case sync helper updated sync fields
+      const fallbackStudent = await prisma.student.findUnique({
+        where: { id: student.id },
+      });
+
+      return NextResponse.json(fallbackStudent ?? student);
+    }
   } catch (error) {
     console.error("UPDATE STUDENT ERROR:", error);
     return NextResponse.json(
