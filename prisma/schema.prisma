@@ -12,21 +12,24 @@ datasource db {
 }
 
 model Student {
-  id            String       @id @default(cuid())
-  studentNumber String?      @unique
-  ghlContactId  String?      @unique
-  firstName     String
-  lastName      String
-  phone         String?
-  email         String?
-  beltRank      String?
-  program       String?
-  status        String       @default("active")
-  lastAttended  DateTime?
+  id                    String       @id @default(cuid())
+  studentNumber         String?      @unique
+  ghlContactId          String?      @unique
+  ghlSyncInProgress     Boolean      @default(false)
+  ghlLastSyncedAt       DateTime?
+  ghlSyncError          String?
+  firstName             String
+  lastName              String
+  phone                 String?
+  email                 String?
+  beltRank              String?
+  program               String?
+  status                String       @default("active")
+  lastAttended          DateTime?
   lastAttendedClassName String?
-  attendance    Attendance[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  attendance            Attendance[]
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 }
 
 model Class {
