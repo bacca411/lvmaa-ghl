@@ -86,12 +86,13 @@ function buildCustomFields(input: GhlUpsertInput) {
   return customFields;
 }
 
-export async function createGhlContact(input: GhlUpsertInput) {
+// CHANGED: use GHL upsert instead of plain create
+export async function upsertGhlContact(input: GhlUpsertInput) {
   if (!process.env.GHL_LOCATION_ID) {
     throw new Error("GHL_LOCATION_ID is not set");
   }
 
-  const response = await fetch(`${GHL_API_BASE}/contacts/`, {
+  const response = await fetch(`${GHL_API_BASE}/contacts/upsert`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
@@ -108,7 +109,7 @@ export async function createGhlContact(input: GhlUpsertInput) {
 
   if (!response.ok) {
     throw new Error(
-      data?.message || data?.error || "Failed to create GHL contact"
+      data?.message || data?.error || "Failed to upsert GHL contact"
     );
   }
 
@@ -144,5 +145,7 @@ export async function syncStudentToGhl(input: GhlUpsertInput) {
     return updateGhlContact(input.ghlContactId, input);
   }
 
-  return createGhlContact(input);
+  // CHANGED: if we do not already know the contact ID,
+  // let GHL try to match by its duplicate settings before creating
+  return upsertGhlContact(input);
 }
