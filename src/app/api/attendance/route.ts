@@ -1,8 +1,5 @@
 import { prisma } from "@/lib/prisma";
-// CHANGED: removed old direct GHL import
-// import { syncStudentToGhl } from "@/lib/ghl";
-
-import { syncStudentById } from "@/lib/student-sync"; // CHANGED: use centralized sync helper
+import { syncStudentById } from "@/lib/student-sync";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -54,43 +51,40 @@ export async function POST(request: Request) {
           lte: endOfDay,
         },
       },
-      include: {
-        student: true,
-        class: true,
-      },
     });
 
     if (existingAttendance) {
       return NextResponse.json(
-        {
-          error: "Student is already checked into this class today.",
-        },
+        { error: "Student is already checked into this class today." },
         { status: 409 }
       );
     }
 
-    const attendance = await prisma.attendance.create({
-      data: {
-        studentId,
-        classId,
-        notes: notes || null,
-        createdByStaffId: createdByStaffId || null,
-      },
-      include: {
-        student: true,
-        class: true,
-      },
+    const attendance = await prisma.$transaction(async (tx) => {
+      const createdAttendance = await tx.attendance.create({
+        data: {
+          studentId,
+          classId,
+          notes: notes || null,
+          createdByStaffId: createdByStaffId || null,
+        },
+        include: {
+          student: true,
+          class: true,
+        },
+      });
+
+      await tx.student.update({
+        where: { id: studentId },
+        data: {
+          lastAttended: createdAttendance.checkInTime,
+          lastAttendedClassName: createdAttendance.class.className,
+        },
+      });
+
+      return createdAttendance;
     });
 
-    await prisma.student.update({
-      where: { id: studentId },
-      data: {
-        lastAttended: attendance.checkInTime,
-        lastAttendedClassName: attendance.class.className,
-      },
-    });
-
-    // CHANGED: replaced manual GHL sync with centralized helper
     try {
       await syncStudentById(studentId);
     } catch (ghlError) {

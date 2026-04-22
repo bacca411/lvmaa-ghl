@@ -1,32 +1,28 @@
-import Link from "next/link";
+"use client";
 
 export default function TopNav() {
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
   return (
-    <nav className="border-b bg-white">
-      <div className="mx-auto flex max-w-6xl gap-3 p-4">
-        <Link href="/" className="rounded-lg border px-3 py-2 font-medium">
-          Home
-        </Link>
+    <header className="flex items-center justify-between bg-white shadow px-6 py-4">
+      <h1 className="text-lg font-bold">LVMAA</h1>
 
-        <Link href="/attendance" className="rounded-lg border px-3 py-2 font-medium">
-          Attendance
-        </Link>
+      <nav className="flex items-center gap-4">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/students">Students</a>
+        <a href="/classes">Classes</a>
 
-        <Link href="/clock" className="rounded-lg border px-3 py-2 font-medium">
-          Clock
-        </Link>
-
-        <Link href="/dashboard" className="rounded-lg border px-3 py-2 font-medium">
-          Dashboard
-        </Link>
-
-        <Link href="/students" className="rounded-lg border px-3 py-2 font-medium">
-         Students
-        </Link>
-        <Link href="/classes" className="rounded-lg border px-3 py-2 font-medium">
-         Classes
-        </Link>
-      </div>
-    </nav>
+        {/* 🔥 Logout button */}
+        <button
+          onClick={handleLogout}
+          className="ml-4 px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+        >
+          Logout
+        </button>
+      </nav>
+    </header>
   );
 }
