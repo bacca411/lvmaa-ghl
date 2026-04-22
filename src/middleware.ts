@@ -1,56 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 
-const protectedPaths = [
-  "/dashboard",
-  "/students",
-  "/attendance",
-  "/classes",
-  "/staff",
-  "/clock",
-  "/api/students",
-  "/api/attendance",
-  "/api/classes",
-  "/api/staff",
-  "/api/clock",
-];
+const authSecret = process.env.AUTH_SECRET;
 
-export function middleware(request: NextRequest) {
+if (!authSecret) {
+  throw new Error("AUTH_SECRET is not set");
+}
+
+const secret = new TextEncoder().encode(authSecret);
+
+const publicPaths = ["/login"];
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = request.cookies.get("staff_session");
-  const isLoggedIn = Boolean(session?.value);
 
-  const isProtected = protectedPaths.some((path) =>
-    pathname.startsWith(path)
-  );
+  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+  const isApiAuth =
+    pathname.startsWith("/api/auth/login") ||
+    pathname.startsWith("/api/auth/logout");
 
-  if (isProtected && !isLoggedIn) {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const isStatic =
+    pathname.startsWith("/_next") || pathname === "/favicon.ico";
 
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (isApiAuth || isStatic) {
+    return NextResponse.next();
   }
 
-  if (pathname === "/login" && isLoggedIn) {
+  const token = request.cookies.get("lvmaa_session")?.value;
+
+  let isAuthenticated = false;
+
+  if (token) {
+    try {
+      await jwtVerify(token, secret);
+      isAuthenticated = true;
+    } catch {
+      isAuthenticated = false;
+    }
+  }
+
+  if (pathname === "/login" && isAuthenticated) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  if (!isPublic && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/students/:path*",
-    "/attendance/:path*",
-    "/classes/:path*",
-    "/staff/:path*",
-    "/clock/:path*",
-    "/api/students/:path*",
-    "/api/attendance/:path*",
-    "/api/classes/:path*",
-    "/api/staff/:path*",
-    "/api/clock/:path*",
-    "/login",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
