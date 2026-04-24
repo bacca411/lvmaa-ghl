@@ -13,7 +13,9 @@ export default function TopNav() {
       <nav className="flex items-center gap-4">
         <a href="/dashboard">Dashboard</a>
         <a href="/students">Students</a>
+        <a href="/staff">Staff</a>
         <a href="/classes">Classes</a>
+        <a href="/account/password">Change Password</a>
 
         {/* 🔥 Logout button */}
         <button

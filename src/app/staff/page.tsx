@@ -167,6 +167,46 @@ export default function StaffPage() {
     }
   }
 
+  async function handleResetPassword(
+    staffId: string,
+    staffName: string
+  ) {
+    const newPassword = window.prompt(
+      `Enter a new password for ${staffName}:`
+    );
+
+    if (!newPassword) return;
+
+    if (newPassword.length < 8) {
+      alert("Password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          staffId,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Failed to reset password.");
+        return;
+      }
+
+      alert(`Password reset successfully for ${staffName}.`);
+    } catch {
+      alert("Something went wrong.");
+    }
+  }
+
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -311,12 +351,26 @@ export default function StaffPage() {
                           >
                             Edit
                           </button>
+
                           <button
                             type="button"
                             onClick={() => void toggleActive(staffMember)}
                             className="rounded-lg border px-3 py-1 text-sm hover:shadow"
                           >
                             {staffMember.isActive ? "Deactivate" : "Activate"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleResetPassword(
+                                staffMember.id,
+                                `${staffMember.firstName} ${staffMember.lastName}`
+                              )
+                            }
+                            className="rounded-lg border px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            Reset Password
                           </button>
                         </div>
                       </td>
