@@ -70,6 +70,7 @@ model Staff {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   shifts    StaffShift[]
+  trials    Trial[]        
 }
 
 model StaffShift {
@@ -93,4 +94,51 @@ model Resource {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+// ── Add at bottom of file ──────────────────────────────────────────────────
+
+enum TrialStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CONVERTED
+  CANCELLED
+}
+
+model Trial {
+  id               String      @id @default(cuid())
+
+  // GHL identifiers
+  ghlContactId     String?
+  ghlAppointmentId String?     @unique
+  ghlOpportunityId String?
+
+  // Prospect info (pulled from GHL contact)
+  firstName        String
+  lastName         String
+  phone            String?
+  email            String?
+
+  // Trial details
+  trialDate        DateTime
+  trialEndTime     DateTime?
+  className        String?
+  program          String?
+  notes            String?
+
+  // Status
+  status           TrialStatus @default(SCHEDULED)
+
+  // GHL sync bookkeeping (matches Student model pattern)
+  ghlLastSyncedAt  DateTime?
+  ghlSyncError     String?
+  ghlSyncInProgress Boolean    @default(false)
+
+  // Optional staff assignment
+  assignedStaffId  String?
+  assignedStaff    Staff?      @relation(fields: [assignedStaffId], references: [id])
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 }

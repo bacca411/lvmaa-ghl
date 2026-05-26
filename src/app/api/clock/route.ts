@@ -1,102 +1,91 @@
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
 
-export async function GET() {
-  const openShifts = await prisma.staffShift.findMany({
-    where: {
-      clockOutTime: null,
-      status: "clocked_in",
-    },
-    include: {
-      staff: true,
-    },
-    orderBy: {
-      clockInTime: "desc",
-    },
+// GET /api/clock?staffId=xxx — returns staff info + current shift status
+export async function GET(req: NextRequest) {
+  const staffId = req.nextUrl.searchParams.get("staffId");
+
+  if (!staffId) {
+    return NextResponse.json({ error: "staffId required" }, { status: 400 });
+  }
+
+  const staff = await prisma.staff.findUnique({
+    where: { id: staffId },
   });
 
-  return NextResponse.json(openShifts);
+  if (!staff) {
+    return NextResponse.json({ error: "Staff not found" }, { status: 404 });
+  }
+
+  const activeShift = await prisma.staffShift.findFirst({
+    where: { staffId, clockOutTime: null },
+    orderBy: { clockInTime: "desc" },
+  });
+
+  return NextResponse.json({
+    id: staff.id,
+    name: `${staff.firstName} ${staff.lastName}`,
+    currentShiftId: activeShift?.id ?? null,
+    clockedInAt: activeShift?.clockInTime?.toISOString() ?? null,
+  });
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { staffId, action } = body;
+// POST /api/clock — clock in or out
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { staffId, action } = body as { staffId: string; action: "in" | "out" };
 
-    if (!staffId || !action) {
-      return NextResponse.json(
-        { error: "staffId and action are required" },
-        { status: 400 }
-      );
-    }
-
-    if (action === "clock_in") {
-      const existingOpenShift = await prisma.staffShift.findFirst({
-        where: {
-          staffId,
-          clockOutTime: null,
-          status: "clocked_in",
-        },
-      });
-
-      if (existingOpenShift) {
-        return NextResponse.json(
-          { error: "Staff member is already clocked in." },
-          { status: 400 }
-        );
-      }
-
-      const shift = await prisma.staffShift.create({
-        data: {
-          staffId,
-          status: "clocked_in",
-        },
-        include: {
-          staff: true,
-        },
-      });
-
-      return NextResponse.json(shift, { status: 201 });
-    }
-
-    if (action === "clock_out") {
-      const openShift = await prisma.staffShift.findFirst({
-        where: {
-          staffId,
-          clockOutTime: null,
-          status: "clocked_in",
-        },
-        orderBy: {
-          clockInTime: "desc",
-        },
-      });
-
-      if (!openShift) {
-        return NextResponse.json(
-          { error: "No open shift found." },
-          { status: 404 }
-        );
-      }
-
-      const closedShift = await prisma.staffShift.update({
-        where: { id: openShift.id },
-        data: {
-          clockOutTime: new Date(),
-          status: "clocked_out",
-        },
-        include: {
-          staff: true,
-        },
-      });
-
-      return NextResponse.json(closedShift);
-    }
-
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to process clock action" },
-      { status: 500 }
-    );
+  if (!staffId || !action) {
+    return NextResponse.json({ error: "staffId and action required" }, { status: 400 });
   }
+
+  const staff = await prisma.staff.findUnique({ where: { id: staffId } });
+  if (!staff) {
+    return NextResponse.json({ error: "Staff not found" }, { status: 404 });
+  }
+
+  if (action === "in") {
+    const existing = await prisma.staffShift.findFirst({
+      where: { staffId, clockOutTime: null },
+    });
+    if (existing) {
+      return NextResponse.json({ error: "Already clocked in", shiftId: existing.id }, { status: 409 });
+    }
+
+    const shift = await prisma.staffShift.create({
+      data: {
+        staffId,
+        clockInTime: new Date(),
+        status: "clocked_in",
+      },
+    });
+
+    return NextResponse.json({ shiftId: shift.id, clockedInAt: shift.clockInTime.toISOString() });
+  }
+
+  if (action === "out") {
+    const shift = await prisma.staffShift.findFirst({
+      where: { staffId, clockOutTime: null },
+      orderBy: { clockInTime: "desc" },
+    });
+
+    if (!shift) {
+      return NextResponse.json({ error: "Not clocked in" }, { status: 409 });
+    }
+
+    const now = new Date();
+    const updated = await prisma.staffShift.update({
+      where: { id: shift.id },
+      data: { clockOutTime: now, status: "clocked_out" },
+    });
+
+    const durationMs = now.getTime() - updated.clockInTime.getTime();
+    const hours = Math.floor(durationMs / 3600000);
+    const minutes = Math.floor((durationMs % 3600000) / 60000);
+    const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+    return NextResponse.json({ shiftId: shift.id, duration });
+  }
+
+  return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
